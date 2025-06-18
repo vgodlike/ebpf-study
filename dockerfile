@@ -11,18 +11,14 @@ WORKDIR /app
 # - clang, llvm: eBPF 后端编译工具。
 # - libelf-dev: 处理 ELF 格式（eBPF 程序通常是 ELF 文件）所需的开发库。
 # - libbpf-dev: 用于构建 BPF 程序加载器和帮助库。
-# - linux-headers-$(uname -r): 宿主机的内核头文件，编译 eBPF 程序时通常需要这些头文件来定义数据结构和 BPF Helper 函数。
-# 注意：`uname -r` 在 Docker 构建时会获取构建环境（这里是 `rust:latest` 容器）的内核版本，
-# 这通常会导致问题，因为容器的内核版本可能与宿主机的实际内核版本不同。
-# 更好的做法是在宿主机上获取 `uname -r` 的值，然后作为构建参数传递给 Dockerfile，
-# 但为了简化，这里先用 `$(uname -r)`，如果遇到内核版本不匹配问题，可能需要手动指定。
+# 注意：这里已经移除了 `linux-headers-$(uname -r)` 的安装，因为你的宿主机内核是定制的，
+# 且我们会在运行时通过挂载宿主机目录来提供正确的内核头文件。
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     clang \
     llvm \
     libelf-dev \
-    libbpf-dev \
-    linux-headers-$(uname -r) && \
+    libbpf-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # 复制 Cargo.toml 和 Cargo.lock。
@@ -60,9 +56,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # 从构建阶段复制编译好的可执行文件到最终的运行镜像中。
-# `COPY --from=builder` 指令告诉 Docker 从名为 `builder` 的阶段复制文件。
-# `/app/target/release/runqslower` 是在 builder 阶段编译后的路径。
-# `/root/runqslower` 是在当前运行阶段镜像中的目标路径。
+# `runqslower` 会从 builder 阶段的 `/app/target/release/` 复制过来
 COPY --from=builder /app/target/release/runqslower /root/runqslower
 
 # 定义容器启动时默认执行的命令。
