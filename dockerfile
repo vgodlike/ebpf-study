@@ -1,14 +1,13 @@
 # --- 阶段 1: 构建阶段 (Builder Stage) ---
-# 使用 rust:latest 作为基础镜像，它基于 Debian。
 FROM rust:latest as builder
 
-# 设置构建阶段的工作目录
 WORKDIR /app
 
-# --- 更换 Debian 镜像源为阿里云 ---
-# 直接创建或覆盖 /etc/apt/sources.list 文件。
-# 这样就避免了尝试移动一个可能不存在的文件，而是直接写入新的源配置。
-RUN echo "deb https://mirrors.aliyun.com/debian/ bookworm main contrib non-free" > /etc/apt/sources.list && \
+# --- 更换 Debian 镜像源为阿里云并清理其他源 ---
+# 首先清空 /etc/apt/sources.list.d/ 目录下的所有源配置
+RUN rm -f /etc/apt/sources.list.d/*.list && \
+    # 直接创建或覆盖 /etc/apt/sources.list 文件
+    echo "deb https://mirrors.aliyun.com/debian/ bookworm main contrib non-free" > /etc/apt/sources.list && \
     echo "deb https://mirrors.aliyun.com/debian/ bookworm-updates main contrib non-free" >> /etc/apt/sources.list && \
     echo "deb https://mirrors.aliyun.com/debian-security/ bookworm-security main contrib non-free" >> /etc/apt/sources.list && \
     # 更新软件包列表，以便 apt-get install 使用新的源
@@ -35,15 +34,15 @@ COPY . .
 RUN cargo build --release
 
 # --- 阶段 2: 运行阶段 (Runner Stage) ---
-# 使用一个轻量级的 Ubuntu 镜像作为最终镜像。
 FROM ubuntu:22.04
 
-# 设置运行阶段的工作目录
 WORKDIR /root/
 
-# --- 更换 Ubuntu 镜像源为阿里云 ---
-# 直接创建或覆盖 /etc/apt/sources.list 文件
-RUN echo "deb https://mirrors.aliyun.com/ubuntu/ jammy main restricted universe multiverse" > /etc/apt/sources.list && \
+# --- 更换 Ubuntu 镜像源为阿里云并清理其他源 ---
+# 首先清空 /etc/apt/sources.list.d/ 目录下的所有源配置
+RUN rm -f /etc/apt/sources.list.d/*.list && \
+    # 直接创建或覆盖 /etc/apt/sources.list 文件
+    echo "deb https://mirrors.aliyun.com/ubuntu/ jammy main restricted universe multiverse" > /etc/apt/sources.list && \
     echo "deb https://mirrors.aliyun.com/ubuntu/ jammy-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
     echo "deb https://mirrors.aliyun.com/ubuntu/ jammy-backports main restricted universe multiverse" >> /etc/apt/sources.list && \
     echo "deb https://mirrors.aliyun.com/ubuntu/ jammy-security main restricted universe multiverse" >> /etc/apt/sources.list && \
